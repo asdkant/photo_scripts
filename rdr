@@ -1,0 +1,85 @@
+#!/usr/bin/python
+import sys
+import pyexiv2
+import os
+
+# print(sys.argv)
+
+if sys.argv[1] == "-d":
+	files = sys.argv[2:]
+	realrun = False
+else:
+	files = sys.argv[1:]
+	realrun = True
+
+#print(files)
+
+for f in files:
+	try:
+		md = pyexiv2.metadata.ImageMetadata(f)
+		md.read()
+		filedate = md.__getitem__('Exif.Photo.DateTimeOriginal').value.date().isoformat()
+#		print(filedate)
+	except:
+		files.remove(f)
+
+indent = max(list(map(lambda i: len(i),files)))+4
+
+#print(files)
+
+skipped = []
+
+for raw in files:
+	md = pyexiv2.metadata.ImageMetadata(raw)
+	md.read()
+	filedate = md.__getitem__('Exif.Photo.DateTimeOriginal').value.date().isoformat()
+	
+	raw_new = filedate+"_"+raw
+	
+	xmp = raw + ".xmp"
+	xmp_new = filedate+"_"+xmp
+	
+	xmp_exists = os.path.isfile(xmp)
+	xmp_new_exists = os.path.isfile(xmp_new)
+	raw_new_exists = os.path.isfile(raw_new)
+
+	if raw_new_exists:
+		skipped.append(raw + " (new RAW name existed)")
+		if xmp_exists:
+			skipped.append(xmp + " (new RAW name existed)")
+		continue
+
+	# rename raw
+	try:
+		if realrun:
+			os.rename(raw,raw_new)
+		print(raw.ljust(indent)+" -> "+raw_new)
+	except:
+		skipped.append(raw + " (RAW rename error)")
+		if xmp_exists:
+			skipped.append(xmp + " (RAW rename error)")
+		continue
+
+	# if new xmp filename exists, backup
+	if xmp_new_exists and realrun:
+		os.rename(xmp_new,xmp_new+".bkp")
+
+	# if xmp_exists rename xmp
+	if xmp_exists:
+		try:
+			if realrun:
+				os.rename(xmp,xmp_new)
+			print(xmp.ljust(indent)+" -> "+xmp_new)
+		except:
+			skipped.append(xmp + " (XMP rename error)")
+
+	################################################################
+			
+if skipped != []:
+	print()
+	print("----------------------------------------------------------------")
+	print("These were skipped for one reason or another:")
+	print()
+	for i in skipped:
+		print(i)
+	print()

@@ -1,0 +1,25 @@
+#!/bin/bash
+#
+#  newdir: create a new dir in the SD card of a camera, 
+#  only if the latest dir is not empty.
+#
+#  optional argument: the mounted path of the SD card
+#
+
+
+if [[ $1 ]]; then
+	cd $1
+fi
+
+lastdir=$(ls -1d ???_????  | sort | tail -n 1)
+num=$(echo $lastdir | cut -c1-3)
+sufix=$(echo $lastdir | cut -c4-8)
+newdir=$((num+1))${sufix}
+
+
+if [[ "$(ls -A $lastdir)" ]]; then
+	echo "Creating new dir: [ " $newdir " ]"
+	mkdir $newdir
+else
+	echo "Last is empty, put stuff in [ " $lastdir " ]"
+fi
